@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Snake Game</title>
+    <style>
+      * {
+        padding: 0;
+        margin: 0;
+      }
+
+      body {
+        background: url("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTbDrypjocfnNppTtxOsU2HZdkVXwBzvpgD2A&usqp=CAU");
+        background-size: 120vw 120vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+      }
+
+      #scoreid {
+        position: absolute;
+        top: 9px;
+        right: 130px;
+        font-size: 29px;
+        font-family: Arial, Helvetica, sans-serif;
+        font-weight: 700;
+      }
+
+      #hiscoreid {
+        position: absolute;
+        top: 59px;
+        right: 150px;
+        font-size: 29px;
+        font-family: Arial, Helvetica, sans-serif;
+        font-weight: 700;
+      }
+
+      #boardid {
+        background: rgba(0, 0, 0, 0.808);
+        width: 90vmin;
+        height: 92vmin;
+        border: 2px solid black;
+        display: grid;
+        grid-template-rows: repeat(18, 1fr);
+        grid-template-columns: repeat(18, 1fr);
+      }
+
+      .head {
+        background-color: black;
+        border-radius: 50%;
+      }
+
+      .tail {
+        background-color: white;
+        border-radius: 50%;
+      }
+
+      .snake {
+        border-radius: 50%;
+      }
+
+      .food {
+        background-color: rgb(0, 128, 0);
+        border-radius: 50%;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="scoreid">Your Score: 0</div>
+    <div id="hiscoreid">Hi-Score: 0</div>
+    <div id="boardid"></div>
+
+    <script>
+      // Game Constants & Variables
+      let inputDir = { x: 0, y: 0 };
+      const foodSound = new Audio("food.mp3");
+      const gameOverSound = new Audio("gameover.mp3");
+      const moveSound = new Audio("move.mp3");
+      const musicSound = new Audio("music.mp3");
+      let speed = 5;
+      let score = 0;
+      let lastPaintTime = 0;
+      let snakeArr = [{ x: 13, y: 15 }];
+      let food = { x: 6, y: 7 };
+      let isGameStarted = false;
+
+      // Generate a random color for the snake body
+      function getRandomColor() {
+        const letters = "0123456789ABCDEF";
+        let color = "#";
+        for (let i = 0; i < 6; i++) {
+          color += letters[Math.floor(Math.random() * 16)];
+        }
+        return color;
+      }
+      const snakeBodyColor = getRandomColor();
+
+      // Game Functions
+      function main(ctime) {
+        window.requestAnimationFrame(main);
+        if ((ctime - lastPaintTime) / 1000 < 1 / speed) {
+          return;
+        }
+        lastPaintTime = ctime;
+        if (isGameStarted) gameEngine();
+      }
+
+      function isCollide(snake) {
+        for (let i = 1; i < snakeArr.length; i++) {
+          if (snake[i].x === snake[0].x && snake[i].y === snake[0].y) {
+            return true;
+          }
+        }
+        if (
+          snake[0].x >= 18 ||
+          snake[0].x <= 0 ||
+          snake[0].y >= 18 ||
+          snake[0].y <= 0
+        ) {
+          return true;
+        }
+        return false;
+      }
+
+      function gameEngine() {
+        if (isCollide(snakeArr)) {
+          gameOverSound.play();
+          musicSound.pause();
+          inputDir = { x: 0, y: 0 };
+          alert("Game Over. Press OK to restart.");
+          snakeArr = [{ x: 13, y: 15 }];
+          score = 0;
+          document.getElementById("scoreid").innerHTML = "Your Score: " + score;
+          musicSound.play();
+        }
+
+        if (snakeArr[0].y === food.y && snakeArr[0].x === food.x) {
+          foodSound.play();
+          score += 1;
+          speed += 0.5;
+          if (score > hiscoreval) {
+            hiscoreval = score;
+            localStorage.setItem("hiscore", JSON.stringify(hiscoreval));
+            document.getElementById("hiscoreid").innerHTML =
+              "Hi-Score: " + hiscoreval;
+          }
+          document.getElementById("scoreid").innerHTML = "Your Score: " + score;
+          snakeArr.unshift({
+            x: snakeArr[0].x + inputDir.x,
+            y: snakeArr[0].y + inputDir.y,
+          });
+          let a = 2;
+          let b = 16;
+          food = {
+            x: Math.round(a + (b - a) * Math.random()),
+            y: Math.round(a + (b - a) * Math.random()),
+          };
+        }
+
+        for (let i = snakeArr.length - 2; i >= 0; i--) {
+          snakeArr[i + 1] = { ...snakeArr[i] };
+        }
+        snakeArr[0].x += inputDir.x;
+        snakeArr[0].y += inputDir.y;
+
+        document.getElementById("boardid").innerHTML = "";
+        snakeArr.forEach((e, index) => {
+          let snakeElement = document.createElement("div");
+          snakeElement.style.gridRowStart = e.y;
+          snakeElement.style.gridColumnStart = e.x;
+
+          if (index === 0) {
+            snakeElement.classList.add("head");
+          } else if (index === snakeArr.length - 1) {
+            snakeElement.classList.add("tail");
+          } else {
+            snakeElement.classList.add("snake");
+            snakeElement.style.backgroundColor = snakeBodyColor;
+          }
+          document.getElementById("boardid").appendChild(snakeElement);
+        });
+
+        let foodElement = document.createElement("div");
+        foodElement.style.gridRowStart = food.y;
+        foodElement.style.gridColumnStart = food.x;
+        foodElement.classList.add("food");
+        document.getElementById("boardid").appendChild(foodElement);
+      }
+
+      function startGame() {
+        musicSound.play();
+        let hiscore = localStorage.getItem("hiscore");
+        if (hiscore === null) {
+          hiscoreval = 0;
+          localStorage.setItem("hiscore", JSON.stringify(hiscoreval));
+        } else {
+          hiscoreval = JSON.parse(hiscore);
+          document.getElementById("hiscoreid").innerHTML =
+            "Hi-Score: " + hiscoreval;
+        }
+        isGameStarted = true;
+      }
+
+      window.addEventListener("keydown", (e) => {
+        if (!isGameStarted) {
+          startGame();
+        }
+        moveSound.play();
+        switch (e.key) {
+          case "ArrowUp":
+            if (inputDir.y !== 1) {
+              inputDir.x = 0;
+              inputDir.y = -1;
+            }
+            break;
+
+          case "ArrowDown":
+            if (inputDir.y !== -1) {
+              inputDir.x = 0;
+              inputDir.y = 1;
+            }
+            break;
+
+          case "ArrowLeft":
+            if (inputDir.x !== 1) {
+              inputDir.x = -1;
+              inputDir.y = 0;
+            }
+            break;
+
+          case "ArrowRight":
+            if (inputDir.x !== -1) {
+              inputDir.x = 1;
+              inputDir.y = 0;
+            }
+            break;
+          default:
+            break;
+        }
+      });
+
+      alert("Press any key to start the game.");
+      window.requestAnimationFrame(main);
+    </script>
+  </body>
+</html>
